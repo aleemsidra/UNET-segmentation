@@ -46,7 +46,7 @@ def predict_img(net,
 
 def get_args():
     parser = argparse.ArgumentParser(description='Predict masks from input images')
-    parser.add_argument('--model', '-m', default='MODEL.pth', metavar='FILE',
+    parser.add_argument('--model', '-m', default='/home/sidra/Documents/Pytorch-UNet/checkpoints/checkpoint_epoch5.pth', metavar='FILE',
                         help='Specify the file in which the model is stored')
     parser.add_argument('--input', '-i', metavar='INPUT', nargs='+', help='Filenames of input images', required=True)
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
@@ -83,20 +83,21 @@ if __name__ == '__main__':
     out_files = get_output_filenames(args)
 
     net = UNet(n_channels=3, n_classes=2, bilinear=args.bilinear)
-
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
     logging.info(f'Loading model {args.model}')
     logging.info(f'Using device {device}')
-
+   
     net.to(device=device)
     net.load_state_dict(torch.load(args.model, map_location=device))
 
     logging.info('Model loaded!')
-
+    
     for i, filename in enumerate(in_files):
         logging.info(f'\nPredicting image {filename} ...')
         img = Image.open(filename)
-
+   
         mask = predict_img(net=net,
                            full_img=img,
                            scale_factor=args.scale,

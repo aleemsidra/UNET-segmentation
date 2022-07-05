@@ -24,13 +24,22 @@ class UNet(nn.Module):
 
     def forward(self, x):
         x1 = self.inc(x)
+        # print("first conv shape:", x1.shape)
         x2 = self.down1(x1)
+        # print("first max-pooling:", x2.shape)
         x3 = self.down2(x2)
+        # print("second max-pooling:", x3.shape)
         x4 = self.down3(x3)
+        # print("third max-pooling:", x4.shape)
         x5 = self.down4(x4)
+        # print("fourth max-pooling:", x5.shape)
+        
         x = self.up1(x5, x4)
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
+
+
+        # print("after all upsampling," , x.shape)
         logits = self.outc(x)
         return logits

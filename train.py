@@ -1,7 +1,9 @@
 import argparse
 import logging
+from statistics import mode
 import sys
 from pathlib import Path
+from unicodedata import name
 
 import torch
 import torch.nn as nn
@@ -15,11 +17,11 @@ from utils.data_loading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
 from evaluate import evaluate
 from unet import UNet
-
+import os 
 dir_img = Path('./data/imgs/')
 dir_mask = Path('./data/masks/')
 dir_checkpoint = Path('./checkpoints/')
-
+# print("no. of training images", len(os.listdir(dir_img)))
 
 def train_net(net,
               device,
@@ -47,14 +49,18 @@ def train_net(net,
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
     # (Initialize logging)
-    experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
+  
+
+    experiment = wandb.init(project='U-Net', entity = 'sidra', name = 'U-Net', mode  = 'disabled') #, resume='allow', anonymous='must') #, mode  = 'disabled')
+    
+    
+    
     experiment.config.update(dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
                                   val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale,
                                   amp=amp))
 
     logging.info(f'''Starting training:
         Epochs:          {epochs}
-        Batch size:      {batch_size}
         Learning rate:   {learning_rate}
         Training size:   {n_train}
         Validation size: {n_val}
@@ -79,15 +85,19 @@ def train_net(net,
             for batch in train_loader:
                 images = batch['image']
                 true_masks = batch['mask']
+                
+                # print(images.shape, "mask shape", true_masks.shape)
+                
+
 
                 assert images.shape[1] == net.n_channels, \
                     f'Network has been defined with {net.n_channels} input channels, ' \
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
                     'the images are loaded correctly.'
-
+              
                 images = images.to(device=device, dtype=torch.float32)
                 true_masks = true_masks.to(device=device, dtype=torch.long)
-
+                # asd
                 with torch.cuda.amp.autocast(enabled=amp):
                     masks_pred = net(images)
                     loss = criterion(masks_pred, true_masks) \
@@ -141,7 +151,7 @@ def train_net(net,
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
             torch.save(net.state_dict(), str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
             logging.info(f'Checkpoint {epoch} saved!')
-
+            # asd
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
@@ -153,7 +163,7 @@ def get_args():
     parser.add_argument('--scale', '-s', type=float, default=0.5, help='Downscaling factor of the images')
     parser.add_argument('--validation', '-v', dest='val', type=float, default=10.0,
                         help='Percent of the data that is used as validation (0-100)')
-    parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
+    parser.add_argument('--amp', action='store_true', default=True, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
 
